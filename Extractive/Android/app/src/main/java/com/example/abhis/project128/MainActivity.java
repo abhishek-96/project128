@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -25,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView inputtextview,outputtextview;
     private ProgressBar loading_circle;
 
-    private static final String URL = "http://192.168.0.14:8080/summary/";
+    private static final String URL = "http://192.168.120.132:8080/summary/";
     private String input;
 
     @Override
@@ -80,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
                         return params;
                     }
                 };
+
+
+
                 RequestQueue requestQueue = Volley.newRequestQueue(MainActivity.this);
                 requestQueue.add(stringRequest);
 

@@ -4,4 +4,6 @@ from django.conf.urls import url
 
 urlpatterns = [
 	url(r'^$', summary_views.index, name = 'index'),
+	url(r'^homepage/$',summary_views.homepage),
+	
 ]

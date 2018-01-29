@@ -11,34 +11,104 @@ import string
 import sentence
 import re
 from nltk.corpus import stopwords
+from gensim.summarization import keywords
+from sklearn.feature_extraction.text import TfidfVectorizer
+import pygsheets
+import time
+
 
 
 
 # Create your views here.
 @csrf_exempt
- 
+
+def homepage(request):
+	return render(request,'project128.html')
+@csrf_exempt
 def index(request):
 	#print "Hello"
 	final_summary = ""
-	def processFile(file_name):
+	def extract_text(text):
+		text_0 =text
 
-		# read file from provided folder path
-		#f = open(file_name,'r')
-		text_0 =file_name
-		
 
-		# extract content in TEXT tag and remove tags		
-		text_1 = re.sub("<TEXT>\n","",text_0)
-		text_1 = re.sub("\n</TEXT>","",text_0)
+
+		#print 'Text is :-'	
 
 		# replace all types of quotations by normal quotes
-		text_1 = re.sub("\n"," ",text_1)
+		text_1 = re.sub("\n"," ",text_0)
 	
 		text_1 = re.sub("\"","\"",text_1)
 		text_1 = re.sub("''","\"",text_1)
 		text_1 = re.sub("``","\"",text_1)	
 	
 		text_1 = re.sub(" +"," ",text_1)
+		return text_1
+	def processFile(file_name):
+
+		# read file from provided folder path
+		#f = open(file_name,'r')
+		text_0 =file_name
+
+
+
+		#print 'Text is :-'	
+
+		# replace all types of quotations by normal quotes
+		text_1 = re.sub("\n"," ",text_0)
+	
+		text_1 = re.sub("\"","\"",text_1)
+		text_1 = re.sub("''","\"",text_1)
+		text_1 = re.sub("``","\"",text_1)	
+	
+		text_1 = re.sub(" +"," ",text_1)
+	
+		text_1 = text_1.replace("<TEXT>","")
+		
+		#print text_1
+		global article 
+		article = text_1
+
+		#print 'Keywords in article are : '
+		#print keywords(text_1)
+
+		global data1
+
+		
+		data1=keywords(text_1)
+		data1=data1.encode('ascii','ignore')
+		data1=data1.replace('\n'," ")
+		#print type(data1)
+		keyword_reges1=re.compile(r'[\S]+')
+		data1= keyword_reges1.findall(data1)
+
+		
+
+		article_low = text_1.lower()
+
+		#print article_low
+
+		art_occ = 0
+
+		for x in range(0,len(data1)):
+			#print data1[x],'-',article_low.count(data1[x])
+			art_occ = art_occ + article_low.count(data1[x])
+	
+	# 	Testing
+
+		print "Total Occurences of Keywords in Artice : "
+		print art_occ
+
+		global occ
+		occ = art_occ
+		art_occ = 0
+
+		print 'No of words in articles are : '
+		print len(text_1.split())
+
+		print 'No of keywords in articles are : '
+		print len(data1)
+
 
 		# segment data into a list of sentences
 		sentence_token = nltk.data.load('tokenizers/punkt/english.pickle')
@@ -65,19 +135,20 @@ def index(request):
 		
 			# list of sentence objects
 			if stemmedSent != []:
-				sentences.append(sentence.sentence(file_name, stemmedSent, originalWords))				
+				sentences.append(sentence.sentence(file_name, stemmedSent, originalWords))	
+
+
+		
 	
 		return sentences
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to find the term frequencies of the words in the
 #				  sentences present in the provided document cluster
-# Parameters	: sentences, sentences of the document cluster
-# Return 		: dictonary of word, term frequency score
-#---------------------------------------------------------------------------------
 	def TFs(sentences):
 		# initialize tfs dictonary
 		tfs = {}
+		wordFreqs = {}
 
 		# for every sentence in document cluster
 		for sent in sentences:
@@ -91,15 +162,19 @@ def index(request):
 					tfs[word] = tfs[word] + wordFreqs[word]
 			# else if word is being added for the first time
 			else:				
-					tfs[word] = wordFreqs[word]	
+					tfs[word] = wordFreqs[word]
+
+
+	
+		
+
+		
 		return tfs
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to find the inverse document frequencies of the words in
 #				  the sentences present in the provided document cluster 
-# Parameters	: sentences, sentences of the document cluster
-# Return 		: dictonary of word, inverse document frequency score
-#---------------------------------------------------------------------------------
+
 	def IDFs(sentences):
 	    N = len(sentences)
 	    idf = 0
@@ -130,16 +205,22 @@ def index(request):
 		        
 		# reset variables
 		idfs[word] = idf
+
+	
+	 
+			
 		    
 	    return idfs
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to find TF-IDF score of the words in the document cluster
-# Parameters	: sentences, sentences of the document cluster
-# Return 		: dictonary of word, TF-IDF score
-#---------------------------------------------------------------------------------
+
 	def TF_IDF(sentences):
 	    # Method variables
+	    tfs = {}
+	    idfs = {}
+	    tf_idfs = 0
+
 	    tfs = TFs(sentences)
 	    idfs = IDFs(sentences)
 	    retval = {}
@@ -155,16 +236,17 @@ def index(request):
 		else:
 		    retval[tf_idfs].append(word)
 
+  	
+
+	  
+	   
+	
 	    return retval
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to find the sentence similarity for a pair of sentences
 #				  by calculating cosine similarity
-# Parameters	: sentence1, first sentence
-#				  sentence2, second sentence to which first sentence has to be compared
-#				  IDF_w, dictinoary of IDF scores of words in the document cluster
-# Return 		: cosine similarity score
-#---------------------------------------------------------------------------------
+
 	def sentenceSim(sentence1, sentence2, IDF_w):
 		numerator = 0
 		denominator = 0	
@@ -181,13 +263,10 @@ def index(request):
 		except ZeroDivisionError:
 			return float("-inf")	
 
-	#---------------------------------------------------------------------------------
+	
 	# Description	: Function to build a query of n words on the basis of TF-IDF value
-	# Parameters	: sentences, sentences of the document cluster
-	#				  IDF_w, IDF values of the words
-	#				  n, desired length of query (number of words in query)
-	# Return 		: query sentence consisting of best n words
-	#---------------------------------------------------------------------------------
+
+	
 	def buildQuery(sentences, TF_IDF_w, n):
 		#sort in descending order of TF-IDF values
 		scores = TF_IDF_w.keys()
@@ -207,16 +286,13 @@ def index(request):
 					break
 			j=j+1
 
+
 		# return the top selected words as a sentence
 		return sentence.sentence("query", queryWords, queryWords)
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to find the best sentence in reference to the query
-# Parameters	: sentences, sentences of the document cluster
-#				  query, reference query
-#				  IDF, IDF value of words of the document cluster
-# Return 		: best sentence among the sentences in the document cluster
-#---------------------------------------------------------------------------------
+
 	def bestSentence(sentences, query, IDF):
 		best_sentence = None
 		maxVal = float("-inf")
@@ -229,18 +305,12 @@ def index(request):
 				maxVal = similarity
 		sentences.remove(best_sentence)
 
+	
+
 		return best_sentence
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to create the summary set of a desired number of words 
-# Parameters	: sentences, sentences of the document cluster
-#				  best_sentnece, best sentence in the document cluster
-#				  query, reference query for the document cluster
-#				  summary_length, desired number of words for the summary
-#				  labmta, lambda value of the MMR score calculation formula
-#				  IDF, IDF value of words in the document cluster 
-# Return 		: name 
-#---------------------------------------------------------------------------------
 	def makeSummary(sentences, best_sentence, query, summary_length, lambta, IDF):	
 		summary = [best_sentence]
 		sum_len = len(best_sentence.getPreProWords())
@@ -259,18 +329,14 @@ def index(request):
 			sentences.remove(maxxer)
 			sum_len += len(maxxer.getPreProWords())	
 
+	
+
 		return summary
 
-#---------------------------------------------------------------------------------
+
 # Description	: Function to calculate the MMR score given a sentence, the query
 #				  and the current best set of sentences
-# Parameters	: Si, particular sentence for which the MMR score has to be calculated
-#				  query, query sentence for the particualr document cluster
-#				  Sj, the best sentences that are already selected
-#				  lambta, lambda value in the MMR formula
-#				  IDF, IDF value for words in the cluster
-# Return 		: name 
-#---------------------------------------------------------------------------------
+
 	def MMRScore(Si, query, Sj, lambta, IDF):	
 		Sim1 = sentenceSim(Si, query, IDF)
 		l_expr = lambta * Sim1
@@ -283,39 +349,213 @@ def index(request):
 		r_expr = (1-lambta) * max(value)
 		MMR_SCORE = l_expr - r_expr	
 
-		return MMRScore
+		
+
+		return MMR_SCORE
 
 # -------------------------------------------------------------
 #	MAIN FUNCTION
-# -------------------------------------------------------------	
 
+	
+
+
+	start_time=time.time()
 	input = request.POST.get('message').encode('ascii','ignore')	
 	sentences = []
+	#print type(input)
+	#print "Incoming"
 
-	#print "Incoming"	
-			
+	import numpy as np
+	np.random.seed(42)	
 	sentences = sentences + processFile(input)
+
+
+
+	#Added 
+	import np
+	cv=TfidfVectorizer(min_df=1,stop_words='english')
+	traincv=cv.fit_transform([input])
+	scores=zip(cv.get_feature_names(),np.asarray(traincv.sum(axis=0)).ravel())
+       
+	sorted_scores=sorted(scores,key=lambda x:x[1],reverse=True)
+	#print sorted_scores
+	#print 'Get feature names for the document '
+	from pprint import pprint
+	#pprint(sorted_scores[:15])
+	#keywords_tfidf=sorted_scores[:10]
+
+
+	
 
 	# calculate TF, IDF and TF-IDF scores
 	# TF_w 		= TFs(sentences)
 	IDF_w 		= IDFs(sentences)
-	TF_IDF_w 	= TF_IDF(sentences)	
-
+	TF_IDF_w 	= TF_IDF(sentences)
+	
 	# build query; set the number of words to include in our query
 	query = buildQuery(sentences, TF_IDF_w, 10)		
 	#global a
 	# pick a sentence that best matches the query	
 	best1sentence = bestSentence(sentences, query, IDF_w)		
-
+	'''vectorizer=TfidfVectorizer(min_df=1,stop_words='english')
+	
+	model=vectorizer.fit_transform([input])
+	print 'using tf-idf vectorizer'
+	data= vectorizer.vocabulary_.items()
+	print data
+	'''
 	# build summary by adding more relevant sentences
 	summary = makeSummary(sentences, best1sentence, query, 100, 0.5, IDF_w)
 		
 	global final_summary
+	final_summary = ''
+
+
+		
+	
 	for sent in summary:
 		final_summary = final_summary + sent.getOriginalWords() + "\n"
 	final_summary = final_summary[:-1]
 	#results_folder = os.getcwd() + "/MMR_results"		
 	#with open(os.path.join(results_folder,(str(folder) + ".MMR")),"w") as fileOut: fileOut.write(final_summary)
 	#print "The data type is ",type(final_summary)
+	
+	# for fiding keywords and their occurrences
+	final_summary = final_summary.encode('ascii','ignore')
+	final_summary = final_summary.replace("\n"," ")
+	print final_summary	
+	#final_summary = re.sub("<TEXT> ",'',final_summary)	
+	final_summary = re.sub("<TEXT>",'',final_summary)
+	#print input
+	#print '\n\n'
+	#print final_summary
+	#print 'Keywords in summary are :  ' 
+	#print keywords(final_summary)
+	data=keywords(final_summary,ratio=0.2)
+	data=data.encode('ascii','ignore')
+	data=data.replace('\n'," ")
+	#print 'data before regex',data
+	keyword_reges=re.compile(r'[\S]+')
+	data= keyword_reges.findall(data)
+
+	'''
+	#Using minimum of sentencesx2 and 20
+	no_of_sentence = final_summary.split(".")
+	print 'Printing list of sentences : '
+	print no_of_sentence
+	print len(no_of_sentence)
+	print min(len(no_of_sentence),20)
+	'''
+
+	#Setting local threshold
+	article_length =  len(article.split())
+	threshold = 0
+	
+	if article_length <= 300:
+		threshold = 9
+	elif article_length >300 and article_length <=400:
+		threshold = 13
+	elif article_length >400 and article_length <=500:
+		threshold = 16
+	elif article_length >500 and article_length <=600:
+		threshold = 19
+	elif article_length >600 and article_length <=700:
+		threshold = 22
+	elif article_length >700 and article_length <=800:
+		threshold = 21
+	elif article_length >800 and article_length <=1000:
+		threshold = 31
+	elif article_length >1000 and article_length <=1100:
+		threshold = 39
+	elif article_length >1100 and article_length <=1600:
+		threshold = 45
+	elif article_length >1600 and article_length <=1700:
+		threshold = 64
+
+
+	keywords_tfidf=[x[0].encode('utf-8') for x in sorted_scores[:threshold]]
+	#print keywords_tfidf
+
+
+
+	
+	
+	print "List of Keywords : "
+	#print data
+	print keywords_tfidf	
+
+	
+	summary_low = final_summary.lower()	
+
+	sum_occ = 0
+	 
+	for x in range(0,len(keywords_tfidf)):
+		#print keywords_tfidf[x],'-',summary_low.count(keywords_tfidf[x])
+		sum_occ = sum_occ + summary_low.count(keywords_tfidf[x])
+	
+	print "Total Occurrences of Keywords in Summary : "
+	print sum_occ
+
+
+	
+
+	#summary keyword length
+	print 'Summary Keyword Length : ' 
+	#print len(data)
+	print len(keywords_tfidf)
+
+	print 'No of words in summary are : '
+	print len(final_summary.split())
+
+	response_time = (time.time()-start_time)
+	print 'The response time is  : ',response_time
+	
+
+
+	'''
+	#SPREADSHEETS
+	import gspread
+	from oauth2client.service_account import ServiceAccountCredentials
+
+
+	# use creds to create a client to interact with the Google Drive API
+	scope = ['https://spreadsheets.google.com/feeds']
+	creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
+	client = gspread.authorize(creds)
+	
+	# Find a workbook by name and open the first sheet
+	# Make sure you use the right name here.
+	sheet = client.open("project128").sheet1
+
+	row = ["I'm","inserting","a","row","into","a,","Spreadsheet","with","Python"]
+	index = 2
+	sheet.insert_row(row, index)
+	
+
+	import pygsheets
+
+	
+
+	gc = pygsheets.authorize(service_file='client_secret.json')	
+	sh = gc.open('project128')
+	wks = sh.sheet1
+
+	# Update a cell with value (just to let him know values is updated ;) )
+	wks.update_cell('A1', "Hey yank this numpy array")
+	'''
+
+
+
+
+	#CSV
+	import csv   
+	fields=[article,final_summary,len(article.split()),len(final_summary.split()),data1,keywords_tfidf,len(data1),len(keywords_tfidf),occ,sum_occ, response_time]
+	with open('stats.csv', 'a') as f:
+   		 writer = csv.writer(f)
+    		 writer.writerow(fields)
+
+
+	sum_occ = 0
+
 
 	return HttpResponse(final_summary)
