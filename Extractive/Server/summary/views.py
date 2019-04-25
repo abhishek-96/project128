@@ -96,18 +96,31 @@ def index(request):
 
 	# 	Testing
 
+<<<<<<< HEAD
 		print ("Total Occurences of Keywords in Artice : ")
 		print (art_occ)
+=======
+		print("Total Occurences of Keywords in Artice : ")
+		print(art_occ)
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 
 		global occ
 		occ = art_occ
 		art_occ = 0
 
+<<<<<<< HEAD
 		print ('No of words in articles are : ')
 		print (len(text_1.split()))
 
 		print ('No of keywords in articles are : ')
 		print (len(data1))
+=======
+		print('No of words in articles are : ')
+		print(len(text_1.split()))
+
+		print('No of keywords in articles are : ')
+		print(len(data1))
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 
 
 		# segment data into a list of sentences
@@ -153,6 +166,7 @@ def index(request):
 
 		# for every sentence in document cluster
 		for sent in sentences:
+<<<<<<< HEAD
 			wordFreqs = sent.getWordFreq()
 			for word in wordFreqs.keys():
 				#print(word)
@@ -160,6 +174,23 @@ def index(request):
 					tfs[word] = tfs[word] + wordFreqs[word]
 				else:
 					tfs[word] = wordFreqs[word]
+=======
+			# retrieve word frequencies from sentence object
+			wordFreqs = sent.getWordFreq()# for every word
+			for word in wordFreqs.keys():
+		    	# if word already present in the dictonary
+				if tfs.get(word, 0) != 0:
+					tfs[word] = tfs[word] + wordFreqs[word]
+			# else if word is being added for the first time
+				else:
+					tfs[word] = wordFreqs[word]
+
+
+
+
+
+
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 		return tfs
 
 
@@ -175,6 +206,7 @@ def index(request):
 		# every sentence in our cluster
 		for sent in sentences:
 			# every word in a sentence
+<<<<<<< HEAD
 			#print(list(sent.getPreProWords()))
 			for word in list(sent.getPreProWords()):
 				# not to calculate a word's IDF value more than once
@@ -190,18 +222,41 @@ def index(request):
 			except ZeroDivisionError:
 				idf = 0
 			idfs[word] = idf
+=======
+			for word in sent.getPreProWords():
+				# not to calculate a word's IDF value more than Occurences
+				if sent.getWordFreq().get(word, 0) != 0:
+					words[word] = words.get(word, 0)+ 1
+		# for each word in words
+		for word in words:
+			n = words[word]
+
+		# avoid zero division errors
+		try:
+		    w2.append(n)
+		    idf = math.log10(float(N)/n)
+		except ZeroDivisionError:
+		    idf = 0
+		# reset variables
+		idfs[word] = idf
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 		return idfs
 
 
 # Description	: Function to find TF-IDF score of the words in the document cluster
 
 	def TF_IDF(sentences):
+<<<<<<< HEAD
+=======
+	    # Method variables
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 		tfs = {}
 		idfs = {}
 		tf_idfs = 0
 		tfs = TFs(sentences)
 		idfs = IDFs(sentences)
 		retval = {}
+<<<<<<< HEAD
 		for word in tfs:
 			tf_idfs=  tfs[word] * idfs[word]
 			if retval.get(tf_idfs, None) == None:
@@ -211,12 +266,30 @@ def index(request):
 		print("retval from tf_idf is")
 		print(retval)
 		return retval
+=======
+		# for every word
+		for word in tfs:
+			#calculate every word's tf-idf score
+			tf_idfs=  tfs[word] * idfs[word]
+		# add word and its tf-idf score to dictionary
+		if retval.get(tf_idfs, None) == None:
+			retval[tf_idfs] = [word]
+		else:
+			retval[tf_idfs].append(word)
+		return retval
+
+
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 # Description	: Function to find the sentence similarity for a pair of sentences
 #				  by calculating cosine similarity
 
 	def sentenceSim(sentence1, sentence2, IDF_w):
 		numerator = 0
 		denominator = 0
+<<<<<<< HEAD
+=======
+
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 		for word in sentence2.getPreProWords():
 			numerator+= sentence1.getWordFreq().get(word,0) * sentence2.getWordFreq().get(word,0) *  IDF_w.get(word,0) ** 2
 
@@ -236,10 +309,15 @@ def index(request):
 	def buildQuery(sentences, TF_IDF_w, n):
 		#sort in descending order of TF-IDF values
 		scores = TF_IDF_w.keys()
+<<<<<<< HEAD
 		#print(scores)
 		scores=list(reversed(sorted(scores)))
 		#print("after")
 		#print(scores)
+=======
+		scores.sort(reverse=True)
+
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 		i = 0
 		j = 0
 		queryWords = []
@@ -290,7 +368,10 @@ def index(request):
 			MMRval={}
 			for sent in sentences:
 				MMRval[sent] = MMRScore(sent, query, summary, lambta, IDF)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 			maxxer = max(MMRval, key=MMRval.get)
 			summary.append(maxxer)
 			sentences.remove(maxxer)
@@ -324,21 +405,34 @@ def index(request):
 
 
 	start_time=time.time()
+<<<<<<< HEAD
 	input = request.POST.get('message')
+=======
+	input = request.POST.get('message').encode('ascii','ignore')
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 	sentences = []
 	#print type(input)
 	#print "Incoming"
 	print(type(input))
 	import numpy as np
 	np.random.seed(42)
+<<<<<<< HEAD
 	#print(processFile(input)[0].getPreProWords())
+=======
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 	sentences = sentences + processFile(input)
 	#print("before")
 	#print(sentences[0].getPreProWords())
 
 
+<<<<<<< HEAD
 	#Added
 	import numpy as np
+=======
+
+	#Added
+	import np
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 	cv=TfidfVectorizer(min_df=1,stop_words='english')
 	traincv=cv.fit_transform([input])
 	scores=zip(cv.get_feature_names(),np.asarray(traincv.sum(axis=0)).ravel())
@@ -387,11 +481,19 @@ def index(request):
 	#print "The data type is ",type(final_summary)
 
 	# for fiding keywords and their occurrences
+<<<<<<< HEAD
 	final_summary = final_summary.encode('utf-8')
 	#final_summary = final_summary.replace("\n"," ")
 	print (final_summary)
 	#final_summary = re.sub("<TEXT> ",'',final_summary)
 	#final_summary = re.sub("<TEXT>",'',final_summary)
+=======
+	final_summary = final_summary.encode('ascii','ignore')
+	final_summary = final_summary.replace("\n"," ")
+	print(final_summary)
+	#final_summary = re.sub("<TEXT> ",'',final_summary)
+	final_summary = re.sub("<TEXT>",'',final_summary)
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 	#print input
 	#print '\n\n'
 	#print final_summary
@@ -446,9 +548,15 @@ def index(request):
 
 
 
+<<<<<<< HEAD
 	print ("List of Keywords : ")
 	#print data
 	print (keywords_tfidf)
+=======
+	print("List of Keywords : ")
+	#print data
+	print(keywords_tfidf)
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 
 
 	summary_low = final_summary.lower()
@@ -517,11 +625,14 @@ def index(request):
 	import csv
 	fields=[article,final_summary,len(article.split()),len(final_summary.split()),data1,keywords_tfidf,len(data1),len(keywords_tfidf),occ,sum_occ, response_time]
 	with open('stats.csv', 'a') as f:
+<<<<<<< HEAD
 		 writer = csv.writer(f)
 		 writer.writerow(fields)
 
 
+=======
+		writer = csv.writer(f)
+		writer.writerow(fields)
+>>>>>>> 08d71f7d0bb89b1eeb10c18b7eced8869a5130aa
 	sum_occ = 0
-
-
 	return HttpResponse(final_summary)
